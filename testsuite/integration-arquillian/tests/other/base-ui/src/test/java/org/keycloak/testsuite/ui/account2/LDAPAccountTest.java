@@ -19,6 +19,7 @@ package org.keycloak.testsuite.ui.account2;
 
 import org.jboss.arquillian.graphene.page.Page;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -46,6 +47,7 @@ import org.keycloak.testsuite.federation.ldap.LDAPTestContext;
 import org.keycloak.testsuite.pages.webauthn.WebAuthnRegisterPage;
 import org.keycloak.testsuite.ui.account2.page.AbstractLoggedInPage;
 import org.keycloak.testsuite.ui.account2.page.SigningInPage;
+import org.keycloak.testsuite.util.LDAPRule;
 import org.keycloak.testsuite.util.LDAPTestUtils;
 
 import static org.keycloak.models.AuthenticationExecutionModel.Requirement.REQUIRED;
@@ -60,7 +62,7 @@ import static org.keycloak.testsuite.auth.page.AuthRealm.TEST;
 @EnableFeature(value = Profile.Feature.ACCOUNT_API, skipRestart = true)
 @EnableFeature(value = Profile.Feature.WEB_AUTHN, skipRestart = true, onlyForProduct = true)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class SigningInLDAPTest extends BaseAccountPageTest {
+public class LDAPAccountTest extends AbstractAccountTest {
     public static final String WEBAUTHN_FLOW_ID = "75e2390e-f296-49e6-acf8-6d21071d7e10";
 
     @Page
@@ -81,10 +83,8 @@ public class SigningInLDAPTest extends BaseAccountPageTest {
     private SigningInPage.CredentialType webAuthnPwdlessCredentialType;
     private TimeBasedOTP otpGenerator;
 
-    @Override
-    protected AbstractLoggedInPage getAccountPage() {
-        return signingInPage;
-    }
+    @ClassRule
+    public static LDAPRule ldapRule = new LDAPRule();
 
     @Override
     protected void afterAbstractKeycloakTestRealmImport() {
@@ -138,10 +138,10 @@ public class SigningInLDAPTest extends BaseAccountPageTest {
 
         RealmRepresentation realm = testRealmResource().toRepresentation();
         otpGenerator = new TimeBasedOTP(realm.getOtpPolicyAlgorithm(), realm.getOtpPolicyDigits(), realm.getOtpPolicyPeriod(), 0);
-    }
 
-    @Override
-    public void beforeAuthTest() {
+        testingClient.testing().ldap(TEST).createLDAPProvider(ldapRule.getConfig(), true);
+        log.infof("LDAP Provider created");
+
         String userName = "johnkeycloak";
         String firstName = "Jonh";
         String lastName = "Doe";
