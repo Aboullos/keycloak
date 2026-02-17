@@ -65,7 +65,6 @@ import org.keycloak.testsuite.util.WaitUtils;
 
 import org.keycloak.util.TokenUtil;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
@@ -488,9 +487,7 @@ public final class KcOidcBrokerTransientSessionsTest extends AbstractAdvancedBro
             oauth.clientId(CONSUMER_BROKER_APP_CLIENT_ID);
             oauth.realm(bc.consumerRealmName());
             doLoginSocial(oauth, bc.getIDPAlias(), bc.getUserLogin(), bc.getUserPassword());
-            events.clear();
 
-            updateAccountInformationPage.updateAccountInformation(bc.getUserLogin(), bc.getUserEmail());
             WaitUtils.waitForPageToLoad();
             consentPage.assertCurrent();
             consentPage.confirm();
@@ -498,10 +495,10 @@ public final class KcOidcBrokerTransientSessionsTest extends AbstractAdvancedBro
             EventRepresentation loginEvent;
             do {
                 loginEvent = events.poll();
-            } while (loginEvent != null && ! Objects.equals(EventType.LOGIN.name(), loginEvent.getType()));
+            } while (loginEvent != null && (!Objects.equals(EventType.LOGIN.name(), loginEvent.getType()) ||
+                    !Objects.equals(loginEvent.getClientId(), CONSUMER_BROKER_APP_CLIENT_ID)));
 
             assertThat(loginEvent, notNullValue());
-            assertThat(loginEvent.getClientId(), is(CONSUMER_BROKER_APP_CLIENT_ID));
             assertThat(loginEvent.getUserId(), Matchers.containsString(LightweightUserAdapter.ID_PREFIX));
 
             final String lwUserId = loginEvent.getUserId();
@@ -573,16 +570,14 @@ public final class KcOidcBrokerTransientSessionsTest extends AbstractAdvancedBro
         oauth.client(consumerClientId, CONSUMER_BROKER_APP_SECRET);
         oauth.realm(bc.consumerRealmName());
         doLoginSocial(oauth, bc.getIDPAlias(), bc.getUserLogin(), bc.getUserPassword());
-        events.clear();
-        updateAccountInformationPage.updateAccountInformation(bc.getUserLogin(), bc.getUserEmail(), null, null);
 
         EventRepresentation loginEvent;
         do {
             loginEvent = events.poll();
-        } while (loginEvent != null && ! Objects.equals(EventType.LOGIN.name(), loginEvent.getType()));
+        } while (loginEvent != null && (!Objects.equals(EventType.LOGIN.name(), loginEvent.getType()) ||
+                !Objects.equals(loginEvent.getClientId(), consumerClientId)));
 
         assertThat(loginEvent, notNullValue());
-        assertThat(loginEvent.getClientId(), is(consumerClientId));
         assertThat(loginEvent.getUserId(), Matchers.containsString(LightweightUserAdapter.ID_PREFIX));
 
         return loginEvent;

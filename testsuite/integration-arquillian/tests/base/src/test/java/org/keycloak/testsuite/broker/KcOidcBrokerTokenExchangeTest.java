@@ -135,6 +135,9 @@ public class KcOidcBrokerTokenExchangeTest extends AbstractInitializedBaseBroker
         if (!representation.getConfig().get("issuer").startsWith(ServerURLs.getAuthServerContextRoot())) {
             representation.getConfig().put("issuer", ServerURLs.getAuthServerContextRoot() + "/auth/realms/provider");
         }
+        if (userInfo) {
+            representation.getConfig().put("userInfoUrl", ServerURLs.getAuthServerContextRoot() + "/auth/realms/provider/protocol/openid-connect/userinfo");
+        }
         identityProviderResource.update(representation);
 
         identityProviderResource.addMapper(hardCodedSessionNoteMapper).close();
@@ -325,6 +328,10 @@ public class KcOidcBrokerTokenExchangeTest extends AbstractInitializedBaseBroker
         IdentityProviderRepresentation idpRep = identityProviderResource.toRepresentation();
         idpRep.getConfig().put("disableUserInfo", "true");
         idpRep.getConfig().put("disableTypeClaimCheck", "true");
+        // if auth.server.host != auth.server.host2 we need to update the issuer in the IDP config
+        if (!idpRep.getConfig().get("issuer").startsWith(ServerURLs.getAuthServerContextRoot())) {
+            idpRep.getConfig().put("issuer", ServerURLs.getAuthServerContextRoot() + "/auth/realms/provider");
+        }
         identityProviderResource.update(idpRep);
         getCleanup().addCleanup(() -> {
             idpRep.getConfig().put("disableUserInfo", "false");
@@ -343,7 +350,7 @@ public class KcOidcBrokerTokenExchangeTest extends AbstractInitializedBaseBroker
 
         Client httpClient = AdminClientUtil.createResteasyClient();
         try {
-            WebTarget exchangeUrl = httpClient.target(OAuthClient.AUTH_SERVER_ROOT)
+            WebTarget exchangeUrl = httpClient.target(ServerURLs.getAuthServerContextRoot() + "/auth")
                     .path("/realms")
                     .path(bc.consumerRealmName())
                     .path("protocol/openid-connect/token");
